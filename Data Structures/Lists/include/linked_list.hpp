@@ -28,7 +28,7 @@ public:
 
     std::size_t size();
 
-private:
+protected:
     struct listnode 
     {
         T data;
@@ -120,7 +120,7 @@ linkedlist<T>::remove(std::size_t idx)
             head_->prev = nullptr;
         else 
             tail_ = nullptr;
-    } else if (tmp == tail_) {
+    } else if (tmp == tail_) { 
         tail_ = tail_->prev;
         if (tail_)
             tail_->next = nullptr;
