@@ -1,9 +1,17 @@
+/*
+ *  Implementation of an AVL tree for generic data types.
+ *  Note that these data types must be comparable and that 
+ *  the balance factor for each node in the tree is computed as 
+ *  (right subtree height) - (left subtree height)
+ */ 
+
 #pragma once
 
 #ifndef _AVL_TREE_H_
 #define _AVL_TREE_H_
 
 #include <cstddef>
+#include <iostream>
 
 #define TEMPLATE_T template<typename T>
 
@@ -19,14 +27,19 @@ public:
     void remove(T el);
     std::size_t size();
 
+    bool isBalanced();
+
+    template<typename TT>
+    friend std::ostream& operator<<(std::ostream& os, const avltree<TT>& other);
+
 private:
     struct avlnode
     {
         T data;
         avlnode * left;
         avlnode * right;
-        std::size_t height;
-        std::size_t balanceFactor;
+        int height;
+        int balanceFactor;
     };
 
     avlnode * root_;
@@ -50,10 +63,15 @@ private:
     avlnode * rightLeft(avlnode * node);
 
     /* height method that handles null nodes */
-    std::size_t height(avlnode * node);
-    
+    int height(avlnode * node);
+    void updateNode(avlnode * node);
+
     /* balance method */
     avlnode * balance(avlnode * node);
+    bool isBalancedAux(avlnode * node, int& depth);
+
+    /* recursive print */
+    void printTree(std::ostream& os, avlnode * node, std::size_t spaces) const;
 };
 
 TEMPLATE_T
@@ -67,7 +85,7 @@ TEMPLATE_T
 avltree<T>::~avltree() {}
 
 TEMPLATE_T
-std::size_t
+int
 avltree<T>::height(avlnode * node) 
 {
     if (!node) return -1;
@@ -133,13 +151,8 @@ avltree<T>::rightrotation(avlnode * node)
     node->left = newRoot->right;
     newRoot->right = node;
 
-    node->height = std::max(
-        height(node->left), height(node->right)
-    ) + 1;
-
-    newRoot->height = std::max(
-        height(newRoot->left), height(newRoot->right)
-    ) + 1;
+    updateNode(node);
+    updateNode(newRoot);
 
     return newRoot;
 }
@@ -152,13 +165,8 @@ avltree<T>::leftrotation(avlnode * node)
     node->right = newRoot->left;
     newRoot->left = node;
 
-    node->height = std::max(
-        height(node->left), height(node->right)
-    ) + 1;
-
-    newRoot->height = std::max(
-        height(newRoot->left), height(newRoot->right)
-    ) + 1;
+    updateNode(node);
+    updateNode(newRoot);
 
     return newRoot;
 }
@@ -172,6 +180,7 @@ avltree<T>::initNode(T el)
     node->data = el;
     node->left = node->right = nullptr;
     node->height = 0;
+    node->balanceFactor = 0;
     return node;
 }
 
@@ -181,6 +190,18 @@ avltree<T>::insert(T el)
 {
     root_ = auxInsert(root_, el);
     ++size_;
+}
+
+TEMPLATE_T
+void
+avltree<T>::updateNode(avlnode * node)
+{
+    int rightH = height(node->right);
+    int leftH = height(node->left);
+
+    node->height = std::max(rightH, leftH) + 1;
+
+    node->balanceFactor = (int)rightH - (int)leftH;
 }
 
 TEMPLATE_T
@@ -197,12 +218,7 @@ avltree<T>::auxInsert(avlnode * node, T el)
         return node;
     }
 
-    std::size_t rightH = height(node->right);
-    std::size_t leftH = height(node->left);
-
-    node->height = std::max(rightH, leftH) + 1;
-
-    node->balanceFactor = rightH - leftH;
+    updateNode(node);
 
     return balance(node);
 }
@@ -248,19 +264,13 @@ avltree<T>::auxRemove(avlnode * node, T el)
         node->left = auxRemove(node->left, el);
     } else {
         avlnode * tmp;
-        if (!(node->left) && !(node->right)) {
-            delete node;
-            node = nullptr;
-            return nullptr;
-        } else if (node->left && !(node->right)) {
-            tmp = node->left;
-            delete node;
-            node = nullptr;
-            return tmp;
-        } else if (node->right && !(node->left)) {
+        if (!(node->left)) {
             tmp = node->right;
             delete node;
-            node = nullptr;
+            return tmp;
+        } else if (!(node->right)) {
+            tmp = node->left;
+            delete node;
             return tmp;
         } else {
             tmp = node->left;
@@ -273,14 +283,60 @@ avltree<T>::auxRemove(avlnode * node, T el)
     }
     
     // update this node 
-    std::size_t rightH = height(node->right);
-    std::size_t leftH = height(node->left);
-
-    node->height = std::max(rightH, leftH) + 1;
-
-    node->balanceFactor = rightH - leftH;
+    updateNode(node);
 
     return balance(node);
+}
+
+TEMPLATE_T
+std::ostream&
+operator<<(std::ostream& os, const avltree<T>& other)
+{
+    other.printTree(os, other.root_, 0);
+    return os;
+}
+
+TEMPLATE_T
+void
+avltree<T>::printTree(std::ostream& os, avlnode * node, std::size_t spaces) const
+{
+    if (!node) return;
+    printTree(os, node->right, spaces + 10);
+    for (std::size_t i = 0; i < spaces; ++i) {
+        os << " ";
+    }
+    os << node->data << std::endl;
+    printTree(os, node->left, spaces + 10);
+}
+
+TEMPLATE_T
+bool
+avltree<T>::isBalanced()
+{
+    int leaf = 0;
+    return isBalancedAux(root_, leaf);
+}
+
+TEMPLATE_T
+bool
+avltree<T>::isBalancedAux(avlnode * node, int& depth) 
+{
+    if (!node) {
+        depth = 0;
+        return true;
+    }
+    
+    if (!(node->left) && !(node->right)) {
+        depth = 0;
+        return true;
+    }
+
+    int leftHeight = isBalancedAux(node->left, depth);
+    int rightHeight = isBalancedAux(node->right, depth);
+
+    depth = std::max(rightHeight, leftHeight) + 1;
+    if (std::abs(rightHeight-leftHeight) > 1) return false;
+    return true;
 }
 
 #endif /* _AVL_TREE_H_ */
