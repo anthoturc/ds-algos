@@ -322,7 +322,7 @@ bool
 avltree<T>::isBalancedAux(avlnode * node, int& depth) 
 {
     if (!node) {
-        depth = 0;
+        depth = -1;
         return true;
     }
     
@@ -331,12 +331,14 @@ avltree<T>::isBalancedAux(avlnode * node, int& depth)
         return true;
     }
 
-    int leftHeight = isBalancedAux(node->left, depth);
-    int rightHeight = isBalancedAux(node->right, depth);
+    int leftHeight;
+    bool lBal = isBalancedAux(node->left, leftHeight);
+    int rightHeight;
+    bool rBal = isBalancedAux(node->right, rightHeight);
 
     depth = std::max(rightHeight, leftHeight) + 1;
     if (std::abs(rightHeight-leftHeight) > 1) return false;
-    return true;
+    return lBal && rBal;
 }
 
 #endif /* _AVL_TREE_H_ */

@@ -8,7 +8,7 @@ main(void)
     for (int i = 0; i < 20; ++i) {
         t.insert(i);
         std::cout << t << std::endl; 
-        if (!t.isBalanced()) {
+        if (!t.isBalanced()) { 
             std::cout << "The tree is not balanced" << std::endl;
         }
     } 
