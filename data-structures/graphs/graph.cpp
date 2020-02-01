@@ -1,4 +1,5 @@
 #include "./include/graph.hpp"
+#include <algorithm>
 
 graph::graph() : size(0) {}
 
@@ -45,11 +46,25 @@ graph::remove(int node)
 void
 graph::remove(int node, int neighbor)
 {
-  
+  if (vertices_.find(node) == vertices_.end()) return;
+
+  vertices_[node].erase(
+    std::remove_if(vertices_[node].begin(), vertices_[node].end(), [&neighbor](edge& e1) {
+      return e1.dst == neighbor;
+    })
+  );
 }
 
+/* Too lazy to implement a BFS/DFS :b */
 bool
 graph::contains(int node)
 {
+  if (vertices_.find(node) != vertices_.end()) return true;
+  for (auto v : vertices_) {
+    for (auto e : v.second) {
+      if (e->dst == node) return true;
+    }
+  }
 
+  return false;
 }
